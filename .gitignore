@@ -1,0 +1,60 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.db
+__*
+
+# Directory for instrumented files
+coverage
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+
+# Compiled JavaScript files
+dist/
+build/
+
+# Miscellaneous
+.DS_Store
+*.pem
+*.cert
+*.key
+*.env
+.env*
+.env*.local
+
+# IDE/Editor specific files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw*
+
+# Build system artifacts
+.npm
+.next
+out/
+
+# Test artifacts
+test-results/
+
+# Local development environment (usually managed by tools like Docker)
+.cache/
+.venv/
+
+# Yarn
+yarn-error.log
+.pnp.*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

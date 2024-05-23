@@ -1,0 +1,27 @@
+{
+  "name": "copy-repo",
+  "version": "0.0.0",
+  "description": "A CLI tool to copy project code with line counts and file separators.",
+  "main": "src/index.js",
+  "bin": {
+    "copy-repo": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "code-copy",
+    "cli",
+    "file-processing",
+    "utility"
+  ],
+  "author": {
+    "name": "al-imam",
+    "email": "alimam01828@gmail.com"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "gitignore-parser": "^0.0.2"
+  }
+}
