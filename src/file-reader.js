@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const { parseGitIgnore, parseAccepts } = require("./git-ignore-parser");
+const isTextFile = require("istextfile");
 
 const staticIgnoreRules = [
   ".git",
@@ -50,7 +51,7 @@ function readFiles(
     return false;
   }
 
-  function _readFiles(currentPath) {
+  async function _readFiles(currentPath) {
     const files = fs.readdirSync(currentPath);
 
     for (const file of files) {
@@ -70,8 +71,9 @@ function readFiles(
       if (stats.isDirectory()) {
         _readFiles(filePath);
       } else {
+        if (!isTextFile(filePath)) continue;
+
         const fileContent = fs.readFileSync(filePath, "utf8");
-        const stat = fs.statSync(filePath);
         const lineCount = fileContent.split("\n").length;
         const fileExt = path.extname(filePath);
 
@@ -79,7 +81,7 @@ function readFiles(
           content: fileContent.trim(),
           lineCount,
           extension: fileExt,
-          ...stat,
+          ...stats,
         };
       }
     }
