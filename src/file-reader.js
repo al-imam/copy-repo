@@ -10,7 +10,7 @@ const staticIgnoreRules = [
   ".gitignore",
 ];
 
-function copyToClipboard(content) {
+function copyToUserClipboard(content) {
   try {
     const isWindows = process.platform === "win32";
     const command = isWindows ? "clip" : "pbcopy";
@@ -74,7 +74,7 @@ function readFiles(
   const rawString = formattedContent.join("\n");
 
   if (copyToClipboard) {
-    copyToClipboard(rawString);
+    copyToUserClipboard(rawString);
     console.log("Content copied to clipboard.");
   } else {
     fs.writeFileSync(outputFileName, rawString);
