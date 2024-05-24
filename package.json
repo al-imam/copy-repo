@@ -1,10 +1,10 @@
 {
-  "name": "copy-repo",
-  "version": "0.0.0",
+  "name": "copy-codes",
+  "version": "0.0.1",
   "description": "A CLI tool to copy project code with line counts and file separators.",
   "main": "src/index.js",
   "bin": {
-    "copy-repo": "./src/index.js"
+    "copy-codes": "./src/index.js"
   },
   "scripts": {
     "start": "node src/index.js"
