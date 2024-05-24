@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
-const { parseGitIgnore } = require("./git-ignore-parser");
+const { parseGitIgnore, parseAccepts } = require("./git-ignore-parser");
 
 const staticIgnoreRules = [
   ".git",
@@ -10,19 +9,28 @@ const staticIgnoreRules = [
   ".gitignore",
 ];
 
-function copyToUserClipboard(content) {
+function normalizePath(filePath) {
+  return filePath.split(path.sep).join("/");
+}
+
+async function copyToUserClipboard(content) {
   try {
-    const isWindows = process.platform === "win32";
-    const command = isWindows ? "clip" : "pbcopy";
-    execSync(command, { input: content });
-  } catch {
-    console.log("Failed to copy!");
+    const clipboardy = await import("clipboardy");
+    clipboardy.default.writeSync(content);
+  } catch (error) {
+    console.error("Failed to copy!");
   }
 }
 
 function readFiles(
   dirPath,
-  { ignorePatterns, copyToClipboard, outputFileName }
+  {
+    ignorePatterns,
+    copyToClipboard,
+    outputFileName,
+    outputInMarkdown,
+    acceptsPatterns,
+  }
 ) {
   const fileInfo = {};
 
@@ -31,6 +39,8 @@ function readFiles(
     ...staticIgnoreRules,
     outputFileName,
   ]);
+
+  const acceptRules = parseAccepts(acceptsPatterns);
 
   function shouldIgnore(relativeFilePath) {
     if (gitIgnoreRules.denies(relativeFilePath)) {
@@ -47,7 +57,11 @@ function readFiles(
       const filePath = path.join(currentPath, file);
       const relativeFilePath = path.relative(process.cwd(), filePath);
 
-      if (shouldIgnore(relativeFilePath)) {
+      if (shouldIgnore(relativeFilePath) && acceptsPatterns.length === 0) {
+        continue;
+      }
+
+      if (acceptsPatterns.length > 0 && !acceptRules.denies(relativeFilePath)) {
         continue;
       }
 
@@ -57,8 +71,16 @@ function readFiles(
         _readFiles(filePath);
       } else {
         const fileContent = fs.readFileSync(filePath, "utf8");
+        const stat = fs.statSync(filePath);
         const lineCount = fileContent.split("\n").length;
-        fileInfo[relativeFilePath] = { content: fileContent, lineCount };
+        const fileExt = path.extname(filePath);
+
+        fileInfo[normalizePath(relativeFilePath)] = {
+          content: fileContent.trim(),
+          lineCount,
+          extension: fileExt,
+          ...stat,
+        };
       }
     }
   }
@@ -66,12 +88,18 @@ function readFiles(
   _readFiles(dirPath);
 
   const formattedContent = Object.entries(fileInfo).map(
-    ([filePath, { content, lineCount }]) => {
-      return `/* File: ${filePath} (${lineCount} lines) */\n\n${content}\n\n/* FILE ENDED HERE */\n\n`;
+    ([filePath, { content, lineCount, extension }]) => {
+      if (outputInMarkdown) {
+        return `\`\`\`${extension.replace(
+          ".",
+          ""
+        )} file="${filePath}" \n${content}\n\`\`\``;
+      }
+      return `/* File: ${filePath} (${lineCount} lines) */\n\n${content}\n\n/* FILE ENDED HERE */`;
     }
   );
 
-  const rawString = formattedContent.join("\n");
+  const rawString = formattedContent.join("\n\n\n");
 
   if (copyToClipboard) {
     copyToUserClipboard(rawString);
