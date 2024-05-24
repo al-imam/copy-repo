@@ -2,13 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const { parseGitIgnore, parseAccepts } = require("./git-ignore-parser");
 const isTextFile = require("istextfile");
-
-const staticIgnoreRules = [
-  ".git",
-  "pnpm-lock.yaml",
-  "package-lock.json",
-  ".gitignore",
-];
+const { staticIgnoreRules } = require("./ignores");
 
 function normalizePath(filePath) {
   return filePath.split(path.sep).join("/");
