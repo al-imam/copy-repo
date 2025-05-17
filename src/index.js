@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 const { program } = require("commander");
-const { readFiles } = require("./file-reader");
+const { readFiles, copyToUserClipboard } = require("./file-reader");
+const { generateTsDeps } = require("./ts-deps");
+const fs = require("fs");
 
 program
   .option("-c, --clipboard", "Copy content to clipboard", false)
@@ -20,28 +22,54 @@ program
   .description(
     "A CLI tool to copy project code with line counts and file separators."
   )
-  .version("0.0.0");
+  .version("0.0.3");
 
-program.parse();
-
-const options = program.opts();
-
-function fileName(name) {
-  if (!options.markdown) {
-    return name;
+function outputContent(content, options) {
+  let outputFile = options.output;
+  if (options.markdown && !outputFile.endsWith(".md")) {
+    outputFile += ".md";
   }
-
-  if (!name.endsWith(".md")) {
-    return `${name}.md`;
+  if (options.clipboard) {
+    copyToUserClipboard(content);
+    console.log("Content copied to clipboard.");
+  } else {
+    fs.writeFileSync(outputFile, content);
+    console.log(`Content written to ${outputFile}`);
   }
-
-  return name;
 }
 
-readFiles(process.cwd(), {
-  ignorePatterns: options.ignore,
-  acceptsPatterns: options.accepts,
-  copyToClipboard: options.clipboard,
-  outputFileName: fileName(options.output),
-  outputInMarkdown: options.markdown,
+program.action(() => {
+  const options = program.opts();
+
+  const content = readFiles(process.cwd(), {
+    ignorePatterns: options.ignore,
+    acceptsPatterns: options.accepts,
+    outputInMarkdown: options.markdown,
+  });
+
+  outputContent(content, options);
 });
+
+program
+  .command("ts-deps <file>")
+  .description(
+    "Generate output of a TS file + recursive project imports"
+  )
+  .option(
+    "-c, --cwd <dir>",
+    "project root (with tsconfig.json)",
+    process.cwd()
+  )
+  .action((file, cmdOptions) => {
+    const options = program.opts();
+
+    const content = generateTsDeps(file, cmdOptions.cwd, {
+      ignorePatterns: options.ignore,
+      acceptsPatterns: options.accepts,
+      outputInMarkdown: options.markdown,
+    });
+
+    outputContent(content, options);
+  });
+
+program.parse();
