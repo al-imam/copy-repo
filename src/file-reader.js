@@ -170,11 +170,17 @@ function readFiles(
 
     if (outputInMarkdown) {
       formattedContent.push(
-        `\`\`\` file="${relativePath}" lines="${lineCount}"\n${content}\n\`\`\``
+        `\`\`\` file="${relativePath.replaceAll(
+          path.sep,
+          "/"
+        )}" lines="${lineCount}"\n${content}\n\`\`\``
       );
     } else {
       formattedContent.push(
-        `// ----- ${relativePath} (${lineCount} lines) -----\n${content}`
+        `// ----- ${relativePath.replaceAll(
+          path.sep,
+          "/"
+        )} (${lineCount} lines) -----\n${content}`
       );
     }
   }
