@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const isTextFile = require("istextfile");
 const { parseAccepts } = require("./git-ignore-parser");
+const { staticIgnoreRules } = require("./ignores");
 
 function generateFileTree(files, rootDir) {
   const tree = {};
@@ -62,6 +63,8 @@ function readFiles(
 
   function getDirIgnoreRules(currentDir) {
     const ig = require("ignore")();
+
+    ig.add(staticIgnoreRules);
 
     const rootGitignorePath = path.join(dirPath, ".gitignore");
 

@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const { readFiles } = require("./file-reader");
 const { parseAccepts } = require("./git-ignore-parser");
+const { staticIgnoreRules } = require("./ignores");
 
 function generateTsDeps(entry, cwd, options) {
   const root = path.resolve(cwd);
@@ -28,6 +29,8 @@ function generateTsDeps(entry, cwd, options) {
 
   function getDirIgnoreRules(currentDir) {
     const ig = require("ignore")();
+
+    ig.add(staticIgnoreRules);
 
     const rootGitignorePath = path.join(root, ".gitignore");
     if (fs.existsSync(rootGitignorePath)) {
