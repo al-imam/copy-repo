@@ -3,6 +3,47 @@ const path = require("path");
 const isTextFile = require("istextfile");
 const { parseAccepts } = require("./git-ignore-parser");
 
+function generateFileTree(files, rootDir) {
+  const tree = {};
+
+  files.forEach(({ relativePath }) => {
+    const parts = relativePath.split(path.sep);
+    let current = tree;
+    parts.forEach((part, index) => {
+      if (!current[part]) {
+        current[part] = index === parts.length - 1 ? null : {};
+      }
+      if (index < parts.length - 1) {
+        current = current[part];
+      }
+    });
+  });
+
+  function formatTree(obj, prefix = "", level = 0) {
+    const lines = [];
+    const entries = Object.entries(obj).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+    entries.forEach(([name, children], index) => {
+      const isLast = index === entries.length - 1;
+      const connector = isLast ? "└── " : "├── ";
+      lines.push(`${prefix}${connector}${name}`);
+      if (children) {
+        const newPrefix = prefix + (isLast ? "    " : "│   ");
+        lines.push(...formatTree(children, newPrefix, level + 1));
+      }
+    });
+
+    return lines;
+  }
+
+  const treeLines = formatTree(tree);
+
+  return treeLines.length > 0
+    ? ["Directory tree:", ...treeLines].join("\n")
+    : "";
+}
+
 function readFiles(
   dirPath,
   {
@@ -11,6 +52,7 @@ function readFiles(
     outputInMarkdown = false,
     specificFiles = null,
     maxDepth = Infinity,
+    tree = false,
   } = {}
 ) {
   const formattedContent = [];
@@ -137,7 +179,12 @@ function readFiles(
     }
   }
 
-  return formattedContent.join("\n\n\n");
+  const content = formattedContent.join("\n\n\n");
+  const fileTree = tree
+    ? generateFileTree(filesToProcess, dirPath)
+    : "";
+
+  return { content, fileTree };
 }
 
 async function copyToUserClipboard(content) {

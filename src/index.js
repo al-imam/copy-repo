@@ -25,21 +25,32 @@ program
     parseInt,
     Infinity
   )
+  .option(
+    "-t, --tree",
+    "Include file tree at the top of the output",
+    false
+  )
   .description(
     "A CLI tool to copy project code with line counts and file separators."
   )
   .version("0.0.3");
 
-function outputContent(content, options) {
+function outputContent({ content, fileTree }, options) {
   let outputFile = options.output;
+
   if (options.markdown && !outputFile.endsWith(".md")) {
     outputFile += ".md";
   }
+
+  const finalContent = fileTree
+    ? `${fileTree}\n\n${content}`
+    : content;
+
   if (options.clipboard) {
-    copyToUserClipboard(content);
+    copyToUserClipboard(finalContent);
     console.log("Content copied to clipboard.");
   } else {
-    fs.writeFileSync(outputFile, content);
+    fs.writeFileSync(outputFile, finalContent);
     console.log(`Content written to ${outputFile}`);
   }
 }
@@ -47,14 +58,15 @@ function outputContent(content, options) {
 program.action(() => {
   const options = program.opts();
 
-  const content = readFiles(process.cwd(), {
+  const result = readFiles(process.cwd(), {
     ignorePatterns: options.ignore,
     acceptsPatterns: options.accepts,
     outputInMarkdown: options.markdown,
     maxDepth: options.maxDepth,
+    tree: options.tree,
   });
 
-  outputContent(content, options);
+  outputContent(result, options);
 });
 
 program
@@ -70,14 +82,15 @@ program
   .action((file, cmdOptions) => {
     const options = program.opts();
 
-    const content = generateTsDeps(file, cmdOptions.cwd, {
+    const result = generateTsDeps(file, cmdOptions.cwd, {
       ignorePatterns: options.ignore,
       acceptsPatterns: options.accepts,
       outputInMarkdown: options.markdown,
       maxDepth: options.maxDepth,
+      tree: options.tree,
     });
 
-    outputContent(content, options);
+    outputContent(result, options);
   });
 
 program.parse();

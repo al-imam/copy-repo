@@ -41,10 +41,14 @@ function generateTsDeps(entry, cwd, options) {
 
   recurse(source);
 
-  return readFiles(root, {
+  const { content, fileTree } = readFiles(root, {
     ...options,
     specificFiles: files,
+    maxDepth: options.maxDepth || Infinity,
+    tree: options.tree || false,
   });
+
+  return { content, fileTree };
 }
 
 module.exports = { generateTsDeps };
