@@ -1,10 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const isTextFile = require("istextfile");
-const {
-  parseGitIgnore,
-  parseAccepts,
-} = require("./git-ignore-parser");
+const { parseAccepts } = require("./git-ignore-parser");
 
 function readFiles(
   dirPath,
@@ -19,42 +16,49 @@ function readFiles(
   const formattedContent = [];
   let filesToProcess = [];
 
-  const rootGitIgnoreRules = parseGitIgnore(ignorePatterns);
   const acceptRules = parseAccepts(acceptsPatterns);
 
-  function getDirIgnoreRules(currentDir, baseRules) {
+  function getDirIgnoreRules(currentDir) {
     const ig = require("ignore")();
 
-    if (baseRules) ig.add(baseRules._rules);
+    const rootGitignorePath = path.join(dirPath, ".gitignore");
 
-    const gitignorePath = path.normalize(
-      path.join(currentDir, ".gitignore")
-    );
+    if (fs.existsSync(rootGitignorePath)) {
+      const rootGitIgnoreContent = fs.readFileSync(
+        rootGitignorePath,
+        "utf8"
+      );
+      ig.add(rootGitIgnoreContent);
+    }
 
-    if (fs.existsSync(gitignorePath)) {
-      const gitIgnoreContent = fs.readFileSync(gitignorePath, "utf8");
-      ig.add(gitIgnoreContent);
+    const localGitignorePath = path.join(currentDir, ".gitignore");
+    if (fs.existsSync(localGitignorePath)) {
+      const localGitIgnoreContent = fs.readFileSync(
+        localGitignorePath,
+        "utf8"
+      );
+      ig.add(localGitIgnoreContent);
+    }
+
+    if (ignorePatterns.length > 0) {
+      ig.add(ignorePatterns);
     }
 
     return {
-      denies: (filePath) =>
-        ig.ignores(
-          path.normalize(path.relative(currentDir, filePath))
-        ),
-      accepts: (filePath) =>
-        !ig.ignores(
-          path.normalize(path.relative(currentDir, filePath))
-        ),
+      denies: (filePath) => ig.ignores(filePath),
+      accepts: (filePath) => !ig.ignores(filePath),
     };
   }
 
-  function scanDirectory(currentDir, currentDepth, baseIgnoreRules) {
+  function scanDirectory(
+    currentDir,
+    currentDepth,
+    parentIgnoreRules
+  ) {
     if (currentDepth > maxDepth) return;
 
-    const dirIgnoreRules = getDirIgnoreRules(
-      currentDir,
-      baseIgnoreRules
-    );
+    const dirIgnoreRules =
+      parentIgnoreRules || getDirIgnoreRules(currentDir);
 
     const filesList = fs.readdirSync(currentDir, {
       withFileTypes: true,
@@ -63,10 +67,7 @@ function readFiles(
     filesList.sort((a, b) => a.name.localeCompare(b.name));
 
     for (const file of filesList) {
-      const absolutePath = path.normalize(
-        path.join(currentDir, file.name)
-      );
-
+      const absolutePath = path.join(currentDir, file.name);
       const relativePath = path.normalize(
         path.relative(process.cwd(), absolutePath)
       );
@@ -99,8 +100,7 @@ function readFiles(
   if (specificFiles) {
     filesToProcess = specificFiles
       .map((file) => {
-        const absolutePath = path.normalize(path.resolve(file));
-
+        const absolutePath = path.resolve(file);
         const relativePath = path.normalize(
           path.relative(process.cwd(), absolutePath)
         );
@@ -108,13 +108,8 @@ function readFiles(
         return { absolutePath, relativePath };
       })
       .filter(({ absolutePath, relativePath }) => {
-        const fileDir = path.normalize(path.dirname(absolutePath));
-
-        const dirIgnoreRules = getDirIgnoreRules(
-          fileDir,
-          rootGitIgnoreRules
-        );
-
+        const fileDir = path.dirname(absolutePath);
+        const dirIgnoreRules = getDirIgnoreRules(fileDir);
         const shouldInclude =
           (!dirIgnoreRules.denies(relativePath) ||
             acceptsPatterns.length > 0) &&
@@ -124,7 +119,7 @@ function readFiles(
         return shouldInclude;
       });
   } else {
-    scanDirectory(path.normalize(dirPath), 1, rootGitIgnoreRules);
+    scanDirectory(dirPath, 1, null);
   }
 
   for (const { absolutePath, relativePath } of filesToProcess) {
