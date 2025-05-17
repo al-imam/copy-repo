@@ -33,7 +33,7 @@ program
   .description(
     "A CLI tool to copy project code with line counts and file separators."
   )
-  .version("0.0.3");
+  .version("0.0.6");
 
 function outputContent({ content, fileTree }, options) {
   let outputFile = options.output;
