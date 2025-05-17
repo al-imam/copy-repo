@@ -19,6 +19,12 @@ program
     []
   )
   .option("-m, --markdown", "Output in Markdown format", false)
+  .option(
+    "-d, --max-depth <number>",
+    "Maximum directory depth to scan",
+    parseInt,
+    Infinity
+  )
   .description(
     "A CLI tool to copy project code with line counts and file separators."
   )
@@ -45,6 +51,7 @@ program.action(() => {
     ignorePatterns: options.ignore,
     acceptsPatterns: options.accepts,
     outputInMarkdown: options.markdown,
+    maxDepth: options.maxDepth,
   });
 
   outputContent(content, options);
@@ -67,6 +74,7 @@ program
       ignorePatterns: options.ignore,
       acceptsPatterns: options.accepts,
       outputInMarkdown: options.markdown,
+      maxDepth: options.maxDepth,
     });
 
     outputContent(content, options);

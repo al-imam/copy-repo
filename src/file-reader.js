@@ -13,55 +13,121 @@ function readFiles(
     acceptsPatterns = [],
     outputInMarkdown = false,
     specificFiles = null,
+    maxDepth = Infinity,
   } = {}
 ) {
-  const gitIgnoreRules = parseGitIgnore(ignorePatterns);
-  const acceptRules = parseAccepts(acceptsPatterns);
   const formattedContent = [];
   let filesToProcess = [];
 
-  if (specificFiles) {
-    filesToProcess = specificFiles.map((file) => ({
-      absolutePath: path.resolve(file),
-      relativePath: path
-        .relative(process.cwd(), file)
-        .replace(/\\/g, "/"),
-    }));
-  } else {
-    const filesList = fs.readdirSync(dirPath, {
+  const rootGitIgnoreRules = parseGitIgnore(ignorePatterns);
+  const acceptRules = parseAccepts(acceptsPatterns);
+
+  function getDirIgnoreRules(currentDir, baseRules) {
+    const ig = require("ignore")();
+
+    if (baseRules) ig.add(baseRules._rules);
+
+    const gitignorePath = path.normalize(
+      path.join(currentDir, ".gitignore")
+    );
+
+    if (fs.existsSync(gitignorePath)) {
+      const gitIgnoreContent = fs.readFileSync(gitignorePath, "utf8");
+      ig.add(gitIgnoreContent);
+    }
+
+    return {
+      denies: (filePath) =>
+        ig.ignores(
+          path.normalize(path.relative(currentDir, filePath))
+        ),
+      accepts: (filePath) =>
+        !ig.ignores(
+          path.normalize(path.relative(currentDir, filePath))
+        ),
+    };
+  }
+
+  function scanDirectory(currentDir, currentDepth, baseIgnoreRules) {
+    if (currentDepth > maxDepth) return;
+
+    const dirIgnoreRules = getDirIgnoreRules(
+      currentDir,
+      baseIgnoreRules
+    );
+
+    const filesList = fs.readdirSync(currentDir, {
       withFileTypes: true,
     });
 
     filesList.sort((a, b) => a.name.localeCompare(b.name));
 
-    filesToProcess = filesList
-      .filter((file) => !file.isDirectory())
-      .map((file) => ({
-        absolutePath: path.join(dirPath, file.name),
-        relativePath: path
-          .relative(process.cwd(), path.join(dirPath, file.name))
-          .replace(/\\/g, "/"),
-      }));
+    for (const file of filesList) {
+      const absolutePath = path.normalize(
+        path.join(currentDir, file.name)
+      );
+
+      const relativePath = path.normalize(
+        path.relative(process.cwd(), absolutePath)
+      );
+
+      if (file.isDirectory()) {
+        scanDirectory(absolutePath, currentDepth + 1, dirIgnoreRules);
+      } else {
+        const shouldIgnore = dirIgnoreRules.denies(relativePath);
+
+        if (shouldIgnore && acceptsPatterns.length === 0) {
+          continue;
+        }
+
+        if (
+          acceptsPatterns.length > 0 &&
+          !acceptRules.accepts(relativePath)
+        ) {
+          continue;
+        }
+
+        if (!isTextFile(absolutePath)) {
+          continue;
+        }
+
+        filesToProcess.push({ absolutePath, relativePath });
+      }
+    }
+  }
+
+  if (specificFiles) {
+    filesToProcess = specificFiles
+      .map((file) => {
+        const absolutePath = path.normalize(path.resolve(file));
+
+        const relativePath = path.normalize(
+          path.relative(process.cwd(), absolutePath)
+        );
+
+        return { absolutePath, relativePath };
+      })
+      .filter(({ absolutePath, relativePath }) => {
+        const fileDir = path.normalize(path.dirname(absolutePath));
+
+        const dirIgnoreRules = getDirIgnoreRules(
+          fileDir,
+          rootGitIgnoreRules
+        );
+
+        const shouldInclude =
+          (!dirIgnoreRules.denies(relativePath) ||
+            acceptsPatterns.length > 0) &&
+          (acceptsPatterns.length === 0 ||
+            acceptRules.accepts(relativePath)) &&
+          isTextFile(absolutePath);
+        return shouldInclude;
+      });
+  } else {
+    scanDirectory(path.normalize(dirPath), 1, rootGitIgnoreRules);
   }
 
   for (const { absolutePath, relativePath } of filesToProcess) {
-    const shouldIgnore = gitIgnoreRules.denies(relativePath);
-
-    if (shouldIgnore && acceptsPatterns.length === 0) {
-      continue;
-    }
-
-    if (
-      acceptsPatterns.length > 0 &&
-      !acceptRules.accepts(relativePath)
-    ) {
-      continue;
-    }
-
-    if (!isTextFile(absolutePath)) {
-      continue;
-    }
-
     const content = fs.readFileSync(absolutePath, "utf8").trim();
     const lineCount = content.split("\n").length;
 
