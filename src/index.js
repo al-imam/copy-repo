@@ -74,7 +74,7 @@ Notes:
   - Use --max-depth to control how deep subdirectories are scanned
 `
   )
-  .version("0.0.9", "-v, --version", "Output the current version");
+  .version("0.0.10", "-v, --version", "Output the current version");
 
 function outputContent({ content, fileTree }, options) {
   let outputFile = options.output;
