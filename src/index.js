@@ -6,34 +6,69 @@ const { generateTsDeps } = require("./ts-deps");
 const fs = require("fs");
 
 program
-  .option("-c, --clipboard", "Copy content to clipboard", false)
-  .option("-o, --output <filename>", "Output file name", "__code")
+  .name("copy-codes")
+  .description(
+    "Scans a project directory and outputs code with line counts and file separators. Supports filtering, markdown formatting, and clipboard output"
+  )
+  .addHelpText(
+    "before",
+    `Overview:
+  Use 'copy-codes' to extract and format code from your project. By default, it scans the current directory and outputs to a file named '__code'
+  Use the 'ts-deps' subcommand to include a TypeScript file and its dependencies
+  Run any command with --help for detailed options
+`
+  )
+  .option(
+    "-c, --clipboard",
+    "Copy output to the clipboard instead of saving to a file overrides --output"
+  )
+  .option(
+    "-o, --output <filename>",
+    "Save output to this file (default: '__code'). With --markdown, '.md' is appended if not present"
+  )
   .option(
     "-i, --ignore <patterns...>",
-    "Regex patterns to ignore files/directories follow .gitignore syntax",
-    []
+    "Exclude files/folders using .gitignore style patterns (example: 'node_modules') ignored if --accepts is used"
   )
   .option(
     "-a, --accepts <patterns...>",
-    "Patterns to accept files/directories. If specified, ignore patterns are disregarded.",
-    []
+    "Include only files/folders matching these .gitignore style patterns (example: '*.ts') overrides --ignore"
   )
-  .option("-m, --markdown", "Output in Markdown format", false)
+  .option(
+    "-m, --markdown",
+    "Format output as markdown with code blocks (default: plain text)"
+  )
   .option(
     "-d, --max-depth <number>",
-    "Maximum directory depth to scan",
+    "Limit directory scan depth (example: 1 = top level only, 2 = one subfolder deep). default: infinite",
     parseInt,
     Infinity
   )
   .option(
     "-t, --tree",
-    "Include file tree at the top of the output",
-    false
+    "Include a directory tree diagram in the output"
   )
-  .description(
-    "A CLI tool to copy project code with line counts and file separators."
+  .addHelpText(
+    "after",
+    `
+Examples:
+  Scan current directory, save to 'code.txt', ignore specific folders:
+    $ copy-codes -o code.txt -i node_modules dist
+
+  Scan with markdown formatting and include a directory tree:
+    $ copy-codes -m -t
+
+  Copy TypeScript file and its dependencies to clipboard:
+    $ copy-codes -c ts-deps src/index.ts
+
+Notes:
+  - Patterns for --ignore and --accepts use .gitignore style syntax (example: '*.js', 'src/**')
+  - If --accepts is set, --ignore is ignored, and only matching files are included
+  - markdown output includes code fences with file paths and line counts
+  - Use --max-depth to control how deep subdirectories are scanned
+`
   )
-  .version("0.0.7");
+  .version("0.0.8", "-v, --version", "Output the current version");
 
 function outputContent({ content, fileTree }, options) {
   let outputFile = options.output;
@@ -72,12 +107,27 @@ program.action(() => {
 program
   .command("ts-deps <file>")
   .description(
-    "Generate output of a TS file + recursive project imports"
+    "Outputs a TypeScript file and all its recursively imported project files"
   )
   .option(
     "-c, --cwd <dir>",
-    "project root (with tsconfig.json)",
+    "Set project root directory (must contain tsconfig.json). default: process.cwd()",
     process.cwd()
+  )
+  .addHelpText(
+    "after",
+    `
+Examples:
+  Output 'src/index.ts' and its dependencies:
+    $ copy-codes ts-deps src/index.ts
+
+  Use custom project root and markdown output:
+    $ copy-codes -m ts-deps src/index.ts --cwd ./ex-project
+
+Notes:
+  - Requires a valid tsconfig.json in the project root
+  - Supports all main command options (example: --ignore, --accepts, --tree)
+`
   )
   .action((file, cmdOptions) => {
     const options = program.opts();
