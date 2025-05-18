@@ -20,23 +20,28 @@ program
   )
   .option(
     "-c, --clipboard",
-    "Copy output to the clipboard instead of saving to a file overrides --output"
+    "Copy output to the clipboard instead of saving to a file overrides --output",
+    false
   )
   .option(
     "-o, --output <filename>",
-    "Save output to this file (default: '__code'). With --markdown, '.md' is appended if not present"
+    "Save output to this file (default: '__code'). With --markdown, '.md' is appended if not present",
+    "__code"
   )
   .option(
     "-i, --ignore <patterns...>",
-    "Exclude files/folders using .gitignore style patterns (example: 'node_modules') ignored if --accepts is used"
+    "Exclude files/folders using .gitignore style patterns (example: 'node_modules') ignored if --accepts is used",
+    []
   )
   .option(
     "-a, --accepts <patterns...>",
-    "Include only files/folders matching these .gitignore style patterns (example: '*.ts') overrides --ignore"
+    "Include only files/folders matching these .gitignore style patterns (example: '*.ts') overrides --ignore",
+    []
   )
   .option(
     "-m, --markdown",
-    "Format output as markdown with code blocks (default: plain text)"
+    "Format output as markdown with code blocks (default: plain text)",
+    false
   )
   .option(
     "-d, --max-depth <number>",
@@ -46,7 +51,8 @@ program
   )
   .option(
     "-t, --tree",
-    "Include a directory tree diagram in the output"
+    "Include a directory tree diagram in the output",
+    false
   )
   .addHelpText(
     "after",
@@ -68,7 +74,7 @@ Notes:
   - Use --max-depth to control how deep subdirectories are scanned
 `
   )
-  .version("0.0.8", "-v, --version", "Output the current version");
+  .version("0.0.9", "-v, --version", "Output the current version");
 
 function outputContent({ content, fileTree }, options) {
   let outputFile = options.output;
