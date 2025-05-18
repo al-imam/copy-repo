@@ -24,7 +24,11 @@ function generateTsDeps(entry, cwd, options) {
   const visited = new Set();
   const files = [];
 
-  const { ignorePatterns = [], acceptsPatterns = [] } = options;
+  const {
+    ignorePatterns = [],
+    acceptsPatterns = [],
+    maxDepth = Infinity,
+  } = options;
   const acceptRules = parseAccepts(acceptsPatterns);
 
   function getDirIgnoreRules(currentDir) {
@@ -61,7 +65,9 @@ function generateTsDeps(entry, cwd, options) {
     };
   }
 
-  function recurse(sf) {
+  function recurse(sf, depth = 0) {
+    if (depth >= maxDepth) return;
+
     const filePath = path.normalize(sf.getFilePath());
 
     if (visited.has(filePath)) return;
@@ -117,13 +123,13 @@ function generateTsDeps(entry, cwd, options) {
         }
 
         if (impPath.startsWith(root)) {
-          recurse(imp);
+          recurse(imp, depth + 1);
         }
       }
     });
   }
 
-  recurse(source);
+  recurse(source, 0);
 
   const { content, fileTree } = readFiles(root, {
     ...options,
